@@ -35,6 +35,16 @@ impl Dial {
     pub fn is_zero(&self) -> bool {
         self.0 == 0
     }
+
+    pub fn passes_zero_amount(&self, instruction: &DialInstruction) -> u32 {
+        match instruction.direction {
+            TurnDirection::Right => (self.0 + instruction.amount) / 100,
+            TurnDirection::Left => {
+                let start = if self.is_zero() { 0 } else { 100 - self.0 };
+                (start + instruction.amount) / 100
+            } // view left rotation the same way as right rotation
+        }
+    }
 }
 
 enum TurnDirection {
@@ -76,17 +86,24 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut dial = Dial::new();
 
-    let mut password: u32 = 0;
+    let mut password_part_one: u32 = 0;
+    let mut password_part_two: u32 = 0;
 
     for line in buf_reader {
         let instruction = DialInstruction::from_line(line?)?;
+
+        password_part_two += dial.passes_zero_amount(&instruction);
+
         dial.turn(instruction);
+
         if dial.is_zero() {
-            password += 1;
+            password_part_one += 1;
         }
     }
 
-    println!("Password is: {password}");
+    println!("Password (Part one) is: {password_part_one}");
+
+    println!("Password (Part two) is: {password_part_two}");
 
     Ok(())
 }
