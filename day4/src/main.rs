@@ -18,6 +18,17 @@ impl Diagram {
             .ok_or("diagram invalid")?)
     }
 
+    fn delete_roll_at(&mut self, x: usize, y: usize) -> Result<(), Box<dyn Error>> {
+        *self
+            .0
+            .get_mut(y)
+            .ok_or("Diagram malformed")?
+            .get_mut(x)
+            .ok_or("Diagram malformed")? = 'x';
+
+        Ok(())
+    }
+
     fn height(&self) -> usize {
         self.0.len()
     }
@@ -98,20 +109,38 @@ fn file_string() -> Result<String, Box<dyn Error>> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let diagram = Diagram::from_string(file_string()?);
+    let mut diagram = Diagram::from_string(file_string()?);
 
     let mut count = 0u32;
-    for x in 0..diagram.width() {
-        for y in 0..diagram.height() {
-            if let Some(surrounding_rolls) = diagram.get_surrounding_rolls(x, y)
-                && surrounding_rolls < 4
-            {
+    let mut done = false;
+    let mut first_try = true;
+    while !done {
+        let mut accessable_rolls: Vec<(usize, usize)> = Vec::new();
+        for x in 0..diagram.width() {
+            for y in 0..diagram.height() {
+                if let Some(surrounding_rolls) = diagram.get_surrounding_rolls(x, y)
+                    && surrounding_rolls < 4
+                {
+                    accessable_rolls.push((x, y));
+                }
+            }
+        }
+        if first_try {
+            println!("{} rolls of paper can be accessed.", accessable_rolls.len());
+            first_try = false;
+        }
+        if accessable_rolls.is_empty() {
+            done = true;
+        } else {
+            for roll in accessable_rolls {
+                let (x, y) = roll;
+                diagram.delete_roll_at(x, y)?;
                 count += 1;
             }
         }
     }
 
-    println!("{count} rolls of paper can be accessed.");
+    println!("{count} rolls of paper can be removed.");
 
     Ok(())
 }
